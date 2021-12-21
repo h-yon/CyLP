@@ -881,6 +881,14 @@ static const char *__pyx_filename;
   #define _Complex_I 1.0fj
 #endif
 
+#if PY_VERSION_HEX >= 0x030900A4
+  #define __Pyx_SET_REFCNT(obj, refcnt) Py_SET_REFCNT(obj, refcnt)
+  #define __Pyx_SET_SIZE(obj, size) Py_SET_SIZE(obj, size)
+#else
+  #define __Pyx_SET_REFCNT(obj, refcnt) Py_REFCNT(obj) = (refcnt)
+  #define __Pyx_SET_SIZE(obj, size) Py_SIZE(obj) = (size)
+#endif
+
 
 static const char *__pyx_f[] = {
   "stringsource",
@@ -5373,9 +5381,9 @@ static void __pyx_tp_dealloc_4cylp_2cy_21CyCglCutGeneratorBase_CyCglCutGenerator
   {
     PyObject *etype, *eval, *etb;
     PyErr_Fetch(&etype, &eval, &etb);
-    ++Py_REFCNT(o);
+    __Pyx_SET_REFCNT(o, Py_REFCNT(o) + 1);
     __pyx_pw_4cylp_2cy_21CyCglCutGeneratorBase_21CyCglCutGeneratorBase_3__dealloc__(o);
-    --Py_REFCNT(o);
+    __Pyx_SET_REFCNT(o, Py_REFCNT(o) - 1);
     PyErr_Restore(etype, eval, etb);
   }
   Py_CLEAR(p->cyModel);

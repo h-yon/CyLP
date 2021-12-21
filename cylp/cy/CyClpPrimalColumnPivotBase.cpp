@@ -878,6 +878,14 @@ static const char *__pyx_filename;
   #define _Complex_I 1.0fj
 #endif
 
+#if PY_VERSION_HEX >= 0x030900A4
+  #define __Pyx_SET_REFCNT(obj, refcnt) Py_SET_REFCNT(obj, refcnt)
+  #define __Pyx_SET_SIZE(obj, size) Py_SET_SIZE(obj, size)
+#else
+  #define __Pyx_SET_REFCNT(obj, refcnt) Py_REFCNT(obj) = (refcnt)
+  #define __Pyx_SET_SIZE(obj, size) Py_SIZE(obj) = (size)
+#endif
+
 
 static const char *__pyx_f[] = {
   "stringsource",
@@ -1903,7 +1911,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
           PyThreadState *tstate;\
           PyGILState_STATE state = PyGILState_Ensure();\
           tstate = __Pyx_PyThreadState_Current;\
-          if (unlikely(tstate->use_tracing) && !tstate->tracing &&\
+          if (unlikely(tstate->cframe->use_tracing) && !tstate->tracing &&\
                   (tstate->c_profilefunc || (CYTHON_TRACE && tstate->c_tracefunc))) {\
               __Pyx_use_tracing = __Pyx_TraceSetupAndCall(&__pyx_frame_code, &__pyx_frame, tstate, funcname, srcfile, firstlineno);\
           }\
@@ -1912,7 +1920,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
       }\
   } else {\
       PyThreadState* tstate = PyThreadState_GET();\
-      if (unlikely(tstate->use_tracing) && !tstate->tracing &&\
+      if (unlikely(tstate->cframe->use_tracing) && !tstate->tracing &&\
               (tstate->c_profilefunc || (CYTHON_TRACE && tstate->c_tracefunc))) {\
           __Pyx_use_tracing = __Pyx_TraceSetupAndCall(&__pyx_frame_code, &__pyx_frame, tstate, funcname, srcfile, firstlineno);\
           if (unlikely(__Pyx_use_tracing < 0)) goto_error;\
@@ -1921,7 +1929,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
   #else
   #define __Pyx_TraceCall(funcname, srcfile, firstlineno, nogil, goto_error)\
   {   PyThreadState* tstate = PyThreadState_GET();\
-      if (unlikely(tstate->use_tracing) && !tstate->tracing &&\
+      if (unlikely(tstate->cframe->use_tracing) && !tstate->tracing &&\
               (tstate->c_profilefunc || (CYTHON_TRACE && tstate->c_tracefunc))) {\
           __Pyx_use_tracing = __Pyx_TraceSetupAndCall(&__pyx_frame_code, &__pyx_frame, tstate, funcname, srcfile, firstlineno);\
           if (unlikely(__Pyx_use_tracing < 0)) goto_error;\
@@ -1931,10 +1939,10 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
   #define __Pyx_TraceException()\
   if (likely(!__Pyx_use_tracing)); else {\
       PyThreadState* tstate = __Pyx_PyThreadState_Current;\
-      if (tstate->use_tracing &&\
+      if (tstate->cframe->use_tracing &&\
               (tstate->c_profilefunc || (CYTHON_TRACE && tstate->c_tracefunc))) {\
           tstate->tracing++;\
-          tstate->use_tracing = 0;\
+          tstate->cframe->use_tracing = 0;\
           PyObject *exc_info = __Pyx_GetExceptionTuple(tstate);\
           if (exc_info) {\
               if (CYTHON_TRACE && tstate->c_tracefunc)\
@@ -1944,7 +1952,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
                   tstate->c_profileobj, __pyx_frame, PyTrace_EXCEPTION, exc_info);\
               Py_DECREF(exc_info);\
           }\
-          tstate->use_tracing = 1;\
+          tstate->cframe->use_tracing = 1;\
           tstate->tracing--;\
       }\
   }
@@ -1952,13 +1960,13 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
       PyObject *type, *value, *traceback;
       __Pyx_ErrFetchInState(tstate, &type, &value, &traceback);
       tstate->tracing++;
-      tstate->use_tracing = 0;
+      tstate->cframe->use_tracing = 0;
       if (CYTHON_TRACE && tstate->c_tracefunc)
           tstate->c_tracefunc(tstate->c_traceobj, frame, PyTrace_RETURN, result);
       if (tstate->c_profilefunc)
           tstate->c_profilefunc(tstate->c_profileobj, frame, PyTrace_RETURN, result);
       CYTHON_FRAME_DEL(frame);
-      tstate->use_tracing = 1;
+      tstate->cframe->use_tracing = 1;
       tstate->tracing--;
       __Pyx_ErrRestoreInState(tstate, type, value, traceback);
   }
@@ -1970,14 +1978,14 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
               PyThreadState *tstate;\
               PyGILState_STATE state = PyGILState_Ensure();\
               tstate = __Pyx_PyThreadState_Current;\
-              if (tstate->use_tracing) {\
+              if (tstate->cframe->use_tracing) {\
                   __Pyx_call_return_trace_func(tstate, __pyx_frame, (PyObject*)result);\
               }\
               PyGILState_Release(state);\
           }\
       } else {\
           PyThreadState* tstate = __Pyx_PyThreadState_Current;\
-          if (tstate->use_tracing) {\
+          if (tstate->cframe->use_tracing) {\
               __Pyx_call_return_trace_func(tstate, __pyx_frame, (PyObject*)result);\
           }\
       }\
@@ -1986,7 +1994,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
   #define __Pyx_TraceReturn(result, nogil)\
   if (likely(!__Pyx_use_tracing)); else {\
       PyThreadState* tstate = __Pyx_PyThreadState_Current;\
-      if (tstate->use_tracing) {\
+      if (tstate->cframe->use_tracing) {\
           __Pyx_call_return_trace_func(tstate, __pyx_frame, (PyObject*)result);\
       }\
   }
@@ -2007,9 +2015,9 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
       __Pyx_ErrFetchInState(tstate, &type, &value, &traceback);
       __Pyx_PyFrame_SetLineNumber(frame, lineno);
       tstate->tracing++;
-      tstate->use_tracing = 0;
+      tstate->cframe->use_tracing = 0;
       ret = tstate->c_tracefunc(tstate->c_traceobj, frame, PyTrace_LINE, NULL);
-      tstate->use_tracing = 1;
+      tstate->cframe->use_tracing = 1;
       tstate->tracing--;
       if (likely(!ret)) {
           __Pyx_ErrRestoreInState(tstate, type, value, traceback);
@@ -2029,7 +2037,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
               PyThreadState *tstate;\
               PyGILState_STATE state = PyGILState_Ensure();\
               tstate = __Pyx_PyThreadState_Current;\
-              if (unlikely(tstate->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
+              if (unlikely(tstate->cframe->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
                   ret = __Pyx_call_line_trace_func(tstate, __pyx_frame, lineno);\
               }\
               PyGILState_Release(state);\
@@ -2037,7 +2045,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
           }\
       } else {\
           PyThreadState* tstate = __Pyx_PyThreadState_Current;\
-          if (unlikely(tstate->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
+          if (unlikely(tstate->cframe->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
               int ret = __Pyx_call_line_trace_func(tstate, __pyx_frame, lineno);\
               if (unlikely(ret)) goto_error;\
           }\
@@ -2047,7 +2055,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
   #define __Pyx_TraceLine(lineno, nogil, goto_error)\
   if (likely(!__Pyx_use_tracing)); else {\
       PyThreadState* tstate = __Pyx_PyThreadState_Current;\
-      if (unlikely(tstate->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
+      if (unlikely(tstate->cframe->use_tracing && tstate->c_tracefunc && __pyx_frame->f_trace)) {\
           int ret = __Pyx_call_line_trace_func(tstate, __pyx_frame, lineno);\
           if (unlikely(ret)) goto_error;\
       }\
@@ -5909,9 +5917,9 @@ static void __pyx_tp_dealloc_4cylp_2cy_26CyClpPrimalColumnPivotBase_CyClpPrimalC
   {
     PyObject *etype, *eval, *etb;
     PyErr_Fetch(&etype, &eval, &etb);
-    ++Py_REFCNT(o);
+    __Pyx_SET_REFCNT(o, Py_REFCNT(o) + 1);
     __pyx_pw_4cylp_2cy_26CyClpPrimalColumnPivotBase_26CyClpPrimalColumnPivotBase_3__dealloc__(o);
-    --Py_REFCNT(o);
+    __Pyx_SET_REFCNT(o, Py_REFCNT(o) - 1);
     PyErr_Restore(etype, eval, etb);
   }
   Py_CLEAR(p->cyModel);
@@ -6803,7 +6811,7 @@ static int __Pyx_TraceSetupAndCall(PyCodeObject** code,
       __Pyx_PyFrame_SetLineNumber(*frame, firstlineno);
     retval = 1;
     tstate->tracing++;
-    tstate->use_tracing = 0;
+    tstate->cframe->use_tracing = 0;
     __Pyx_ErrFetchInState(tstate, &type, &value, &traceback);
     #if CYTHON_TRACE
     if (tstate->c_tracefunc)
@@ -6811,12 +6819,12 @@ static int __Pyx_TraceSetupAndCall(PyCodeObject** code,
     if (retval && tstate->c_profilefunc)
     #endif
         retval = tstate->c_profilefunc(tstate->c_profileobj, *frame, PyTrace_CALL, NULL) == 0;
-    tstate->use_tracing = (tstate->c_profilefunc ||
+    tstate->cframe->use_tracing = (tstate->c_profilefunc ||
                            (CYTHON_TRACE && tstate->c_tracefunc));
     tstate->tracing--;
     if (retval) {
         __Pyx_ErrRestoreInState(tstate, type, value, traceback);
-        return tstate->use_tracing && retval;
+        return tstate->cframe->use_tracing && retval;
     } else {
         Py_XDECREF(type);
         Py_XDECREF(value);
